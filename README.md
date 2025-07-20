@@ -1,130 +1,101 @@
-# flask_project
 # Flask Content Management System (CMS)
 
-A simple Content Management System (CMS) built with Flask. Provides RESTful APIs for managing articles with JWT authentication.
+## Project Overview
+This is a simple Content Management System (CMS) built with Flask. It provides RESTful APIs for managing articles, user authentication with JWT, and a recently viewed feature. The app uses SQLite for storage and is fully containerized with Docker.
 
-## Docker Commands
+## Features
+- RESTful API for articles (CRUD)
+- User authentication with JWT (register/login)
+- Each user can only access their own articles
+- Recently viewed articles per user (in-memory, not persisted)
+- SQLite database (file-based)
+- Pagination for article listing
+- Dockerized for easy deployment
+- Alembic migrations scaffolded
+- Unit tests for core functionality
 
-bash
-# Start the application
-docker-compose up --build
+## Getting Started
 
-# Run in background
-docker-compose up -d --build
+### Running Locally (with virtualenv)
 
-# Stop the application
-docker-compose down
+1. **Clone the repo**
+2. **Create and activate a virtual environment:**
+   ```bash
+   python -m venv venv
+   # On Windows:
+   venv\Scripts\activate
+   # On Mac/Linux:
+   source venv/bin/activate
+   ```
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. **Initialize the database:**
+   ```bash
+   python
+   >>> from app import db
+   >>> db.create_all()
+   >>> exit()
+   ```
+5. **Run the app:**
+   ```bash
+   python app.py
+   ```
+   The app will be available at [http://localhost:5000](http://localhost:5000)
 
-# View logs
-docker-compose logs -f
+### Running with Docker
 
+1. **Build and start the containers:**
+   ```bash
+   docker-compose up --build
+   ```
+2. **The app will be available at** [http://localhost:5000](http://localhost:5000)
 
-The app will be available at [http://localhost:5000](http://localhost:5000)
+### Running the Tests
 
-## API Testing with Postman
+1. **(If running locally)** Make sure your virtual environment is activated and dependencies are installed.
+2. **Run:**
+   ```bash
+   pytest
+   ```
 
-### Setup
-1. Open Postman
-2. Set base URL: http://localhost:5000
-3. Create environment variable: auth_token (will be set after login)
+## API Usage
 
-### Endpoints
+### Authentication Flow
+1. **Register a user:**
+   ```bash
+   curl -X POST http://localhost:5000/register -H "Content-Type: application/json" -d '{"username": "alice"}'
+   ```
+2. **Login to get a JWT token:**
+   ```bash
+   curl -X POST http://localhost:5000/login -H "Content-Type: application/json" -d '{"username": "alice"}'
+   # Response: {"token": "<JWT_TOKEN>"}
+   ```
+3. **Use the token:**
+   For all protected endpoints, add a header:
+   ```
+   Authorization: Bearer <JWT_TOKEN>
+   ```
+   Example with curl:
+   ```bash
+   curl -X GET http://localhost:5000/articles -H "Authorization: Bearer <JWT_TOKEN>"
+   ```
 
-#### 1. Register User
-- *Method*: POST
-- *URL*: http://localhost:5000/register
-- *Headers*: Content-Type: application/json
-- *Body*:
-json
-{
-  "username": "testuser"
-}
+### API Endpoints
+- `POST /register` (JSON: username) — Register a new user
+- `POST /login` (JSON: username) — Get JWT token
+- `POST /articles` (JWT required, JSON: title, content)
+- `GET /articles/<id>` (JWT required)
+- `PUT /articles/<id>` (JWT required, JSON: title/content)
+- `DELETE /articles/<id>` (JWT required)
+- `GET /articles` (JWT required, supports `?page=1&limit=10`)
+- `GET /recently_viewed` (JWT required)
 
+#### Pagination
+- Use `/articles?page=1&limit=10` to paginate article results.
 
-#### 2. Login User
-- *Method*: POST
-- *URL*: http://localhost:5000/login
-- *Headers*: Content-Type: application/json
-- *Body*:
-json
-{
-  "username": "testuser"
-}
-
-- *Note*: Copy the token from response and set it as auth_token variable
-
-#### 3. Create Article
-- *Method*: POST
-- *URL*: http://localhost:5000/articles
-- *Headers*: 
-  - Content-Type: application/json
-  - Authorization: Bearer {{auth_token}}
-- *Body*:
-json
-{
-  "title": "My Article",
-  "content": "Article content here"
-}
-
-
-#### 4. Create Articles Batch
-- *Method*: POST
-- *URL*: http://localhost:5000/articles/batch
-- *Headers*: 
-  - Content-Type: application/json
-  - Authorization: Bearer {{auth_token}}
-- *Body*:
-json
-[
-  {
-    "title": "Article 1",
-    "content": "Content 1"
-  },
-  {
-    "title": "Article 2", 
-    "content": "Content 2"
-  }
-]
-
-
-#### 5. Get All Articles
-- *Method*: GET
-- *URL*: http://localhost:5000/articles?page=1&limit=10
-- *Headers*: Authorization: Bearer {{auth_token}}
-
-#### 6. Get Article by ID
-- *Method*: GET
-- *URL*: http://localhost:5000/articles/1
-- *Headers*: Authorization: Bearer {{auth_token}}
-
-#### 7. Update Article
-- *Method*: PUT
-- *URL*: http://localhost:5000/articles/1
-- *Headers*: 
-  - Content-Type: application/json
-  - Authorization: Bearer {{auth_token}}
-- *Body*:
-json
-{
-  "title": "Updated Title",
-  "content": "Updated content"
-}
-
-
-#### 8. Delete Article
-- *Method*: DELETE
-- *URL*: http://localhost:5000/articles/1
-- *Headers*: Authorization: Bearer {{auth_token}}
-
-#### 9. Get Recently Viewed
-- *Method*: GET
-- *URL*: http://localhost:5000/recently_viewed
-- *Headers*: Authorization: Bearer {{auth_token}}
-
-## Testing Flow
-1. Register a user
-2. Login to get token
-3. Create articles
-4. List/view articles
-5. Update articles
-6. Delete articles
+## Notes
+- Recently viewed articles are not persisted and reset on server restart.
+- SQLite DB file is `cms.db` in the app directory.
+- Change `SECRET_KEY` in `app.py` for production use. 
